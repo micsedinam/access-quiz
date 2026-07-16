@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Access — Digital Literacy Checkpoints</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root{
+  --bg:#EEF1F0;
+  --surface:#FFFFFF;
+  --ink:#1B2430;
+  --ink-soft:#5C6773;
+  --board-bg:#1B2430;
+  --board-line:#2A3543;
+  --amber:#FFB020;
+  --teal:#1F9D74;
+  --teal-soft:#EAF7F1;
+  --red:#E5484D;
+  --red-soft:#FCEAEA;
+  --border:#D8DEDC;
+  --mono:'IBM Plex Mono', monospace;
+  --sans:'Manrope', sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--sans);
+  background:var(--bg);
+  color:var(--ink);
+  min-height:100vh;
+}
+button{font-family:var(--sans);}
+.container{max-width:920px;margin:0 auto;padding:0 20px 90px;}
+
+/* header */
+.header{display:flex;justify-content:space-between;align-items:flex-start;padding:26px 20px 18px;max-width:920px;margin:0 auto;flex-wrap:wrap;gap:14px;}
+.wordmark{font-family:var(--mono);font-weight:700;letter-spacing:.1em;font-size:19px;color:var(--ink);}
+.wordmark .sub{display:block;font-family:var(--sans);font-weight:500;font-size:12.5px;color:var(--ink-soft);letter-spacing:normal;margin-top:4px;}
+.mode-toggle{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:4px;gap:4px;height:fit-content;}
+.mode-toggle button{border:none;background:transparent;padding:9px 18px;border-radius:999px;font-family:var(--mono);font-size:12px;letter-spacing:.06em;cursor:pointer;color:var(--ink-soft);}
+.mode-toggle button.active{background:var(--ink);color:#fff;}
+
+/* board */
+.board{background:var(--board-bg);border-radius:14px;overflow:hidden;box-shadow:0 24px 48px -28px rgba(27,36,48,.55);margin-bottom:34px;}
+.board-head{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--board-line);}
+.board-title{font-family:var(--mono);color:var(--amber);letter-spacing:.14em;font-size:12.5px;font-weight:700;}
+.board-clock{font-family:var(--mono);color:#7C8896;font-size:12.5px;}
+.board-row{display:grid;grid-template-columns:2.1fr 1fr 1.3fr 1.2fr;gap:10px;padding:16px 22px;border-bottom:1px solid var(--board-line);align-items:center;}
+.board-row:last-child{border-bottom:none;}
+.board-empty{padding:34px 22px;color:#8B96A3;font-size:13.5px;font-family:var(--mono);}
+.cell-topic .t-name{font-family:var(--sans);color:#EDEFF1;font-weight:700;font-size:14px;}
+.cell-topic .t-meta{font-family:var(--sans);font-weight:400;color:#8B96A3;font-size:11.5px;margin-top:3px;}
+.flap{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;padding:5px 10px;border-radius:5px;display:inline-block;}
+.flap.open{color:#1B2430;background:var(--amber);}
+.flap.upcoming{color:#B9C2CC;background:#2A3543;}
+.flap.closed{color:#6B7684;background:#232C38;}
+.cell-time{font-family:var(--mono);color:#C7D0D8;font-size:12.5px;}
+.cell-action{text-align:right;}
+.flip-in{animation:flip .45s ease;}
+@keyframes flip{0%{transform:rotateX(85deg);opacity:0;}100%{transform:rotateX(0deg);opacity:1;}}
+@media (prefers-reduced-motion: reduce){.flip-in{animation:none;}}
+
+/* buttons */
+.btn{border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--sans);}
+.btn-amber{background:var(--amber);color:#1B2430;}
+.btn-amber:hover{filter:brightness(1.05);}
+.btn-dark{background:var(--ink);color:#fff;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--ink);}
+.btn-outline-light{background:transparent;border:1px solid #3A4655;color:#C7D0D8;}
+.btn-ghost{background:transparent;color:var(--ink-soft);}
+.btn-danger{background:transparent;color:var(--red);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+
+/* name gate */
+.gate{max-width:420px;margin:60px auto;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px;text-align:center;}
+.gate h2{font-size:18px;margin:0 0 6px;}
+.gate p{color:var(--ink-soft);font-size:13.5px;margin:0 0 20px;}
+.gate input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;margin-bottom:14px;font-family:var(--sans);}
+
+/* section titles */
+.section-title{font-family:var(--mono);font-size:12px;letter-spacing:.1em;color:var(--ink-soft);font-weight:700;margin:0 0 14px;text-transform:uppercase;}
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+
+/* tickets */
+.ticket{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px;}
+.ticket-main{flex:1;padding:18px 22px;}
+.ticket-main .tm-title{font-weight:700;font-size:14.5px;margin-bottom:4px;}
+.ticket-main .tm-meta{font-size:12px;color:var(--ink-soft);}
+.ticket-stub{width:128px;border-left:2px dashed var(--border);padding:16px 14px;text-align:center;position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;}
+.ticket-stub::before,.ticket-stub::after{content:"";position:absolute;left:-11px;width:20px;height:20px;background:var(--bg);border-radius:50%;}
+.ticket-stub::before{top:-10px;}
+.ticket-stub::after{bottom:-10px;}
+.ticket-score{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--teal);}
+.ticket-score.fail{color:var(--red);}
+.ticket-pct{font-family:var(--mono);font-size:11px;color:var(--ink-soft);}
+.ticket-stub button{margin-top:2px;}
+
+/* quiz */
+.qcard{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;max-width:640px;margin:0 auto;}
+.qcard-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:12px;}
+.qcard-topic{font-weight:700;font-size:14px;}
+.score-chip{font-family:var(--mono);background:var(--board-bg);color:var(--amber);padding:6px 14px;border-radius:999px;font-size:12.5px;font-weight:700;letter-spacing:.05em;white-space:nowrap;}
+.progress-track{height:6px;background:var(--border);border-radius:999px;overflow:hidden;margin-bottom:24px;}
+.progress-fill{height:100%;background:var(--teal);transition:width .3s ease;}
+.q-text{font-size:16px;font-weight:700;margin-bottom:18px;line-height:1.45;}
+.option{display:block;width:100%;text-align:left;padding:13px 16px;border:1px solid var(--border);border-radius:10px;background:#fff;margin-bottom:10px;font-size:14px;cursor:pointer;transition:border-color .15s ease, background .15s ease;}
+.option:hover:not(:disabled){border-color:var(--ink);}
+.option.correct{border-color:var(--teal);background:var(--teal-soft);color:#0F6B48;}
+.option.incorrect{border-color:var(--red);background:var(--red-soft);color:#B3222A;}
+.option:disabled{cursor:default;}
+.explain{margin-top:6px;margin-bottom:18px;padding:14px 16px;background:#F5F7F6;border-radius:10px;font-size:13px;color:var(--ink-soft);line-height:1.5;}
+.qcard-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:6px;}
+
+/* pass detail */
+.pass{max-width:520px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:0;overflow:hidden;}
+.pass-head{background:var(--board-bg);padding:22px 26px;text-align:center;}
+.pass-head .pl{font-family:var(--mono);color:#8B96A3;font-size:11px;letter-spacing:.14em;}
+.pass-head .pn{color:#fff;font-weight:700;font-size:17px;margin-top:4px;}
+.pass-body{padding:24px 26px;}
+.pass-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px dashed var(--border);font-size:13.5px;}
+.pass-row:last-child{border-bottom:none;}
+.pass-row .k{color:var(--ink-soft);}
+.pass-row .v{font-weight:700;}
+.pass-review{margin-top:18px;}
+.review-item{padding:12px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.review-item:last-child{border-bottom:none;}
+.review-item .rq{font-weight:600;margin-bottom:6px;}
+.review-item .ra{color:var(--ink-soft);}
+.review-item .ra.wrong{color:var(--red);}
+.review-item .ra.right{color:var(--teal);}
+.locked-note{margin-top:16px;padding:14px 16px;background:#F5F7F6;border-radius:10px;font-size:12.5px;color:var(--ink-soft);}
+
+/* facilitator */
+.tabs{display:flex;gap:8px;margin-bottom:18px;}
+.tabs button{border:1px solid var(--border);background:var(--surface);padding:9px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;color:var(--ink-soft);}
+.tabs button.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+.admin-note{font-size:12px;color:var(--ink-soft);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:18px;}
+.list-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+.list-card .lc-name{font-weight:700;font-size:14px;}
+.list-card .lc-meta{font-size:12px;color:var(--ink-soft);margin-top:3px;}
+.list-card .lc-actions{display:flex;gap:8px;}
+.empty-state{background:var(--surface);border:1px dashed var(--border);border-radius:10px;padding:26px;text-align:center;color:var(--ink-soft);font-size:13.5px;}
+
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:16px;}
+.field{margin-bottom:15px;}
+.field label{display:block;font-size:11.5px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;}
+.field input, .field textarea, .field select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:var(--sans);font-size:14px;}
+.field textarea{resize:vertical;min-height:56px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.q-block{border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;position:relative;background:#FAFBFB;}
+.q-block-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.q-block-head .qn{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);letter-spacing:.06em;}
+.opt-row{display:flex;gap:10px;align-items:center;margin-bottom:8px;}
+.opt-row input[type=radio]{width:auto;flex-shrink:0;}
+.opt-row input[type=text]{flex:1;}
+.form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+.err{color:var(--red);font-size:12.5px;margin-top:-6px;margin-bottom:12px;}
+
+.loading{text-align:center;padding:60px 20px;color:var(--ink-soft);font-family:var(--mono);font-size:13px;}
+.reset-link{display:block;text-align:center;margin-top:26px;font-size:12px;color:var(--ink-soft);background:none;border:none;cursor:pointer;text-decoration:underline;}
+</style>
+</head>
+<body>
+<div id="app"><div class="loading">LOADING BOARD…</div></div>
+
+<script>
+/* ---------- backend storage (Vercel serverless + KV) ----------
+   Replaces the Claude artifact runtime's window.storage.
+   - shared data (topics, assignments): global, seen by everyone
+   - personal data (name, scores, facilitator login): per-device,
+     keyed by a client id kept in this browser's localStorage      */
+(function(){
+  function getClientId(){
+    try{
+      let id = localStorage.getItem('access_client_id');
+      if(!id){
+        id = 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2,10);
+        localStorage.setItem('access_client_id', id);
+      }
+      return id;
+    }catch(e){ return 'anon'; }
+  }
+  const clientId = getClientId();
+  async function call(op, payload){
+    const res = await fetch('/api/storage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({ op: op, clientId: clientId }, payload))
+    });
+    if(!res.ok){ throw new Error('storage ' + op + ' failed: ' + res.status); }
+    return res.json();
+  }
+  window.storage = {
+    get:    function(key, shared){ return call('get',    { key: key, shared: !!shared }); },
+    set:    function(key, value, shared){ return call('set', { key: key, value: value, shared: !!shared }); },
+    delete: function(key, shared){ return call('delete', { key: key, shared: !!shared }); },
+    list:   function(prefix, shared){ return call('list', { prefix: prefix || '', shared: !!shared }); }
+  };
+})();
+
+/* ---------- storage helpers ---------- */
+async function sGet(key, shared){
+  try{ const r = await window.storage.get(key, !!shared); return r ? r.value : null; }
+  catch(e){ return null; }
+}
+async function sSet(key, value, shared){
+  try{ return await window.storage.set(key, value, !!shared); }
+  catch(e){ console.error('storage set failed', key, e); return null; }
+}
+async function sDel(key, shared){
+  try{ return await window.storage.delete(key, !!shared); }
+  catch(e){ return null; }
+}
+async function sList(prefix, shared){
+  try{ const r = await window.storage.list(prefix, !!shared); return r ? r.keys : []; }
+  catch(e){ return []; }
+}
+function uid(prefix){ return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function escapeHtml(str){
+  return String(str == null ? '' : str).replace(/[&<>"']/g, function(c){
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+  });
+}
+function fmtDateTime(iso){
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+}
+function fmtDuration(ms){
+  if(ms < 0) ms = 0;
+  const s = Math.floor(ms/1000);
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60);
+  const sec = s%60;
+  return [h,m,sec].map(function(n){return String(n).padStart(2,'0');}).join(':');
+}
+
+/* ---------- state ---------- */
+let state = {
+  mode: 'learner',
+  view: 'board',
+  learnerName: null,
+  topics: [],
+  assignments: [],
+  scores: {},
+  currentQuiz: null,
+  facTab: 'topics',
+  draftTopic: null,
+  draftAssignment: null,
+  formError: '',
+  lastStatuses: {},
+  loading: true,
+  facilitatorAllowed: false
+};
+
+/* ---------- seed content ---------- */
+function seedTopics(){
+  function q(text, opts, correct, exp){ return {id:uid('q'), text:text, options:opts, correct:correct, explanation:exp}; }
+  return [
+    { id: uid('topic'), name:'Internet Safety Basics', description:'Recognizing risky sites, scams, and safe browsing habits.', questions:[
+      q('A website asks for your password but the connection is not secured (no https/padlock). What should you do?', ['Enter it anyway if the site looks trustworthy','Avoid entering it and look for the padlock/https icon first','Enter it, then change it later','Ask a friend if the site looks safe'], 1, 'HTTPS encrypts data in transit. Without it, anything you type — including passwords — can potentially be intercepted.'),
+      q('A pop-up says "Your device has 3 viruses — click here to fix now!" What is the best response?', ['Click the button immediately to remove the viruses','Close the pop-up and scan separately with trusted antivirus software','Call the phone number shown','Share the pop-up with friends as a warning'], 1, 'Fake virus alerts are a classic scareware tactic used to trick people into installing malware.'),
+      q('Which of these is safest to do on public Wi-Fi?', ['Online banking with no extra protection','Using a VPN or avoiding sensitive logins altogether','Entering credit card info freely','Turning off your firewall for faster speed'], 1, 'Public networks are easier to intercept. A VPN or avoiding sensitive tasks reduces that risk.'),
+      q('What does "phishing" mean?', ['A method of speeding up your internet connection','Tricking someone into revealing sensitive info via fake messages or sites','A type of antivirus software','Searching more efficiently online'], 1, 'Phishing uses deceptive emails or websites that impersonate trusted sources to steal information.')
+    ]},
+    { id: uid('topic'), name:'Password & Account Security', description:'Building strong passwords and protecting your accounts.', questions:[
+      q('Which is the strongest password?', ['password123','YourName1990','Tr0pical!Sunset#47','123456'], 2, 'Strong passwords combine length, mixed case, numbers, and symbols — and avoid predictable personal info.'),
+      q('What is two-factor authentication (2FA)?', ['Using two different passwords','An extra verification step beyond your password, like a code sent to your phone','Logging in twice','Sharing your password with two people'], 1, '2FA adds a second proof of identity, making an account far harder to break into even if the password leaks.'),
+      q('You get an email saying "Your account will be suspended — verify now" with a login link. Best action?', ['Click the link and log in immediately','Go directly to the official site or app yourself instead of the link','Reply with your password to confirm','Forward it to coworkers'], 1, 'Legitimate verification should be checked by navigating to the official platform directly, not through an emailed link.'),
+      q('How often should you reuse the same password across multiple accounts?', ['Always, for convenience','Only for unimportant accounts','Never — use a unique password per account, ideally with a password manager','Only if it is a strong password'], 2, 'Reusing a password means one leak can compromise every account that shares it.')
+    ]},
+    { id: uid('topic'), name:'Spotting Misinformation Online', description:'Evaluating sources and verifying claims before sharing.', questions:[
+      q('Before sharing a surprising news story, what is a good first step?', ['Share it immediately so friends see it first','Check whether reputable outlets are reporting the same story','Assume it is true if it has many likes','Only read the headline'], 1, 'Cross-checking with credible sources helps confirm accuracy before a claim spreads further.'),
+      q('A post reuses an old photo with a new caption describing a recent event. This is an example of:', ['Satire','Out-of-context or misleading content','Original journalism','A verified fact'], 1, 'Reusing real images with false context is one of the most common misinformation tactics.'),
+      q('Which is a sign a website may be unreliable?', ['It cites its sources clearly','It has an "About Us" page and named authors','It uses sensational language and provides no sources','It is regularly updated'], 2, 'Credible reporting cites sources and avoids manipulative, emotionally charged language.'),
+      q('What does "fact-checking" involve?', ['Trusting the first search result','Verifying a claim against multiple independent, credible sources','Asking only one friend','Believing whichever post has the most shares'], 1, 'Reliable fact-checking cross-references several independent, credible sources.')
+    ]},
+    { id: uid('topic'), name:'Email & Digital Communication Etiquette', description:'Writing clearly and staying safe in everyday digital messages.', questions:[
+      q('What is an appropriate subject line for a work email requesting a meeting?', ['"Hi"','"URGENT!!!"','"Meeting Request: Project Timeline Review"','Leave it blank'], 2, 'Clear, specific subject lines help recipients understand and prioritize a message.'),
+      q('Before hitting "Reply All," you should:', ['Always include everyone regardless of relevance','Consider whether all recipients actually need your reply','Add more people just in case','Never reply at all'], 1, 'Reply-all should be used thoughtfully to avoid cluttering inboxes of people who do not need the message.'),
+      q('An attachment arrives from an unknown sender with an unusual file type. Best practice?', ['Open it right away out of curiosity','Do not open it — verify the sender or delete/report it','Forward it to see what others think','Rename the file and open it'], 1, 'Unexpected attachments from unknown senders are a common way malware spreads.'),
+      q('What tone is generally best for professional digital communication?', ['All lowercase, no punctuation','ALL CAPS for emphasis','Clear, respectful, and concise','Filled with slang and abbreviations'], 2, 'Professional communication is typically clear, courteous, and to the point.')
+    ]},
+    { id: uid('topic'), name:'Basic Computer & File Skills', description:'Everyday habits for managing files and keeping a computer healthy.', questions:[
+      q('What is the safest way to back up important files?', ['Keep only one copy on your desktop','Save copies in at least two places, e.g. cloud plus an external drive','Never back up — cloud storage is unnecessary','Email files to yourself as the only backup'], 1, 'Multiple backup locations protect against data loss from device failure or accidental deletion.'),
+      q('Which file extension typically indicates a compressed archive?', ['.docx','.zip','.mp3','.exe'], 1, '.zip files bundle and compress multiple files into a single archive.'),
+      q('What does it mean to "update your software"?', ['Delete the app','Install the latest version, often including security fixes','Change the app icon','Reduce the app\'s file size only'], 1, 'Updates frequently patch security vulnerabilities in addition to adding features.'),
+      q('If your computer is running slowly, a reasonable first troubleshooting step is:', ['Immediately buy a new computer','Restart it and close unused programs','Delete random system files','Ignore it permanently'], 1, 'Restarting clears temporary issues, and freeing up resources often resolves slowdowns.')
+    ]}
+  ];
+}
+
+async function seedIfNeeded(){
+  const marker = await sGet('seeded:v1', true);
+  if(marker) return;
+  const topics = seedTopics();
+  for(const t of topics){
+    await sSet('topic:' + t.id, JSON.stringify(t), true);
+  }
+  const now = Date.now();
+  const seedAssignments = [
+    { id: uid('asg'), topicId: topics[0].id, startTime: new Date(now - 60*60*1000).toISOString(), endTime: new Date(now + 2*60*60*1000).toISOString() },
+    { id: uid('asg'), topicId: topics[1].id, startTime: new Date(now + 24*60*60*1000).toISOString(), endTime: new Date(now + 48*60*60*1000).toISOString() },
+    { id: uid('asg'), topicId: topics[2].id, startTime: new Date(now - 72*60*60*1000).toISOString(), endTime: new Date(now - 48*60*60*1000).toISOString() }
+  ];
+  for(const a of seedAssignments){
+    await sSet('assignment:' + a.id, JSON.stringify(a), true);
+  }
+  await sSet('seeded:v1', '1', true);
+}
+
+
+function wordBasicsTopic(){
+  function q(text, opts, correct, exp){ return {id:uid('q'), text:text, options:opts, correct:correct, explanation:exp}; }
+  return { id: uid('topic'), name:'Microsoft Word Basics', description:'Creating, formatting, saving, and everyday skills in Microsoft Word (50 questions).', questions:[
+      q("What is the primary purpose of Microsoft Word?", ["Creating spreadsheets","Word processing — creating and editing text documents","Editing videos","Managing databases"], 1, "Word is a word-processing application for creating and editing text documents."),
+      q("Which file extension is used for a standard modern Word document?", [".xlsx",".pptx",".docx",".pdf"], 2, ".docx is the standard modern Word document format."),
+      q("Where are most everyday formatting tools (bold, font, alignment) found?", ["Insert tab","Home tab","Layout tab","Review tab"], 1, "Most daily formatting tools live under the Home tab."),
+      q("What is the toolbar area at the top of Word called, which groups tools into tabs like Home, Insert, and Layout?", ["Sidebar","Ribbon","Status bar","Navigation pane"], 1, "The Ribbon groups tools into tabs like Home, Insert, and Layout."),
+      q("Which tab would you use to insert a table?", ["Home","Insert","Design","View"], 1, "Tables are inserted from the Insert tab."),
+      q("Which command saves your document under a new name or location, keeping the old version untouched?", ["Save","Save As","Print","Export"], 1, "Save As creates a new copy/location, preserving the original."),
+      q("Which command updates the current file with your latest changes?", ["Save","Save As","Open","New"], 0, "Save updates the current, already-named file."),
+      q("Why is it good practice to save your work early and often?", ["It makes the document look nicer","It protects your work from being lost — for example, due to a power cut or a crash","It is required before you can start typing","It changes the font automatically"], 1, "Frequent saving protects work from crashes, power cuts, etc."),
+      q("What does it mean to \"bold\" text?", ["Change its color","Make text appear thicker and darker, for emphasis","Underline it","Delete it"], 1, "Bold makes text thicker/darker for emphasis."),
+      q("Which keyboard shortcut typically makes selected text bold?", ["Ctrl+B","Ctrl+I","Ctrl+U","Ctrl+S"], 0, "Ctrl+B = Bold."),
+      q("Which keyboard shortcut typically underlines selected text?", ["Ctrl+U","Ctrl+B","Ctrl+P","Ctrl+Z"], 0, "Ctrl+U = Underline."),
+      q("Which keyboard shortcut typically italicizes selected text?", ["Ctrl+I","Ctrl+L","Ctrl+E","Ctrl+K"], 0, "Ctrl+I = Italic."),
+      q("What does \"text alignment\" control?", ["The color of text","How text lines up on the page — left, center, right, or justified","The font size","The spacing between paragraphs"], 1, "Alignment controls how text lines up (left/center/right/justified)."),
+      q("If you want a document heading to stand out, which two formatting changes are most useful together?", ["Italic and a smaller font","Bold and a larger font size","Underline only","Strikethrough and a faint color"], 1, "Bold + larger size is the standard way to make a heading stand out."),
+      q("What is a good reason to give a document a clear, descriptive file name with a date, such as \"CV_YourName_2026.docx\"?", ["It looks nicer on screen","It makes the file easier to find and avoids confusion with other versions","Both of the above","Word will not open the file otherwise"], 2, "A clear, dated name is both readable and easy to locate/avoid mix-ups."),
+      q("In the guide's \"Try it yourself\" CV exercise, what is the first step?", ["Insert a table","Type your name as a heading, then make it bold and larger","Save the file","Insert an image"], 1, "Step 1 is typing your name as a bold, larger heading."),
+      q("According to the guide, which sections should a basic one-page CV include?", ["Contact, Education, Skills","Only Contact","Only Skills","Photos and links only"], 0, "The guide lists Contact, Education, Skills as the CV sections."),
+      q("What is the purpose of inserting a table into a document, as in the guide's CV exercise?", ["To add color for decoration","To organize information — like a skills list — into a clear grid","To insert music","To change the page size"], 1, "Tables organize information like a skills list into a clear grid."),
+      q("Which feature lets you insert a picture or photo into a document?", ["Home tab formatting options","The Insert tab's Picture/Image option","Save As","Spelling & Grammar checker"], 1, "Images are inserted via the Insert tab."),
+      q("What is the benefit of formatting a document \"for readability,\" as the guide suggests?", ["It makes the file smaller","Clear headings, a consistent font, and sensible spacing make it easier to read","It changes the file extension","It automatically corrects spelling"], 1, "Readability comes from clear headings, consistent font, and spacing."),
+      q("Which of the following is *not* one of the module's stated learning outcomes for Word Basics?", ["Create and save a document","Format text","Insert a table and an image","Build a spreadsheet formula"], 3, "Building spreadsheet formulas is an Excel skill (Module 14), not Word."),
+      q("Why does the guide recommend using \"Save As\" to create CV_v2 instead of overwriting CV_v1?", ["It keeps your old version safe while you create a new one","It makes the file open faster","It is required before printing","It changes the font style"], 0, "Save As keeps the old version safe while creating a new one."),
+      q("What tool would you use to check and fix spelling mistakes in a document?", ["Insert table","Spelling & Grammar checker","Save As","Ribbon"], 1, "The Spelling & Grammar checker finds and helps fix spelling errors."),
+      q("Which feature helps you quickly find a specific word or phrase in a long document?", ["Find (Ctrl+F)","Bold","Insert Picture","Page Layout"], 0, "Ctrl+F opens Find, to search within the document."),
+      q("What does \"Find and Replace\" allow you to do?", ["Search for text and automatically swap it with different text","Insert a table","Change the page color","Delete the whole document"], 0, "Find and Replace searches for text and swaps it automatically."),
+      q("Which keyboard shortcut usually undoes your last action in Word?", ["Ctrl+Z","Ctrl+Y","Ctrl+X","Ctrl+V"], 0, "Ctrl+Z = Undo."),
+      q("Which keyboard shortcut usually redoes an action you just undid?", ["Ctrl+Y","Ctrl+Z","Ctrl+C","Ctrl+N"], 0, "Ctrl+Y = Redo (varies slightly by version, but this is standard)."),
+      q("What is the difference between \"Cut\" and \"Copy\"?", ["Cut removes the selected content onto the clipboard; Copy duplicates it and leaves the original in place","They are the same thing","Cut deletes permanently; Copy saves the file","Cut changes the font; Copy changes the color"], 0, "Cut removes content to the clipboard; Copy duplicates it, leaving the original."),
+      q("What does \"Paste\" do?", ["Deletes text","Inserts content you have cut or copied into a new location","Saves the document","Opens a new document"], 1, "Paste inserts cut/copied content at the new location."),
+      q("Which shortcut is commonly used to copy selected text?", ["Ctrl+C","Ctrl+V","Ctrl+X","Ctrl+P"], 0, "Ctrl+C = Copy."),
+      q("Which shortcut is commonly used to paste text?", ["Ctrl+V","Ctrl+C","Ctrl+Z","Ctrl+A"], 0, "Ctrl+V = Paste."),
+      q("What is the purpose of \"line spacing\" in Word?", ["Controls the space between lines of text, for readability","Changes the font color","Inserts a table","Checks spelling"], 0, "Line spacing controls the vertical space between lines of text."),
+      q("What does \"page orientation\" refer to?", ["Whether the page is Portrait (tall) or Landscape (wide)","The font used","The margin size","The file format"], 0, "Orientation is Portrait vs. Landscape."),
+      q("What are \"margins\" in a Word document?", ["The blank space around the edges of the page","The font style","The table borders","The file name"], 0, "Margins are the blank space around the edges of the page."),
+      q("Why might you use bullet points or a numbered list in a document?", ["To organize information clearly into short, scannable points","To make text harder to read","To change the page color","To insert an image"], 0, "Bullets/numbered lists organize information into short, scannable points."),
+      q("Which tab typically contains options to change page margins and orientation?", ["Home","Layout (or Page Layout)","Review","View"], 1, "Margins and orientation are set from the Layout (Page Layout) tab."),
+      q("What does the \"Word Count\" feature tell you?", ["The number of words — and often characters and pages — in your document","The number of images inserted","The file size in MB","The number of fonts used"], 0, "Word Count reports words, and typically characters and pages too."),
+      q("Why is it useful to preview a document before printing?", ["To make sure it looks correct and nothing is cut off, before using paper and ink","It is required to save the file","It changes the font automatically","It deletes unwanted pages"], 0, "Print Preview confirms the document looks right before using paper/ink."),
+      q("What is a \"template\" in Word?", ["A pre-designed document layout you can start from and customize — for example, for a CV or letter","A type of image file","A spelling checker","A printer setting"], 0, "A template is a pre-designed, customizable starting layout."),
+      q("According to the guide, most job or training-programme applications request which type of file?", ["A spreadsheet","A Word document (or similar)","A video","An audio recording"], 1, "Applications typically request a Word document (e.g., a CV)."),
+      q("What does Ctrl+S do in Word?", ["Saves the current document","Selects all text","Starts spell check","Opens a new document"], 0, "Ctrl+S = Save."),
+      q("What does Ctrl+A typically do?", ["Selects all content in the document","Adds a table","Aligns text","Adds an image"], 0, "Ctrl+A = Select All."),
+      q("What does Ctrl+P typically do?", ["Opens the print dialog","Pastes text","Changes the page color","Saves the file"], 0, "Ctrl+P = Print."),
+      q("If you accidentally close Word without saving, what could happen to your unsaved changes?", ["They are automatically saved forever","They may be lost — which is why saving often matters","They are emailed to you","Nothing changes"], 1, "Unsaved changes can be lost if the app closes before saving."),
+      q("What is the benefit of using \"Headings\" (Heading 1, Heading 2, etc.) instead of just making text bold and bigger by hand?", ["Headings help organize a document and can support features like an automatic table of contents","Headings change the file type","Headings are only for spreadsheets","There is no real difference"], 0, "Heading styles organize structure and enable features like auto-generated tables of contents."),
+      q("Which of these is good file-naming practice, consistent with the guide's approach?", ["Use vague names like \"document1\"","Use clear names with dates, like \"CV_Ama_Mensah_2026.docx\"","Never name your files","Use random numbers only"], 1, "Clear, dated names (e.g., CV_Ama_Mensah_2026.docx) are best practice."),
+      q("What does inserting a \"header\" or \"footer\" allow you to add to every page of a document?", ["Repeated information such as a page number, date, or document title","A new table","A different file format","A spelling correction"], 0, "Headers/footers repeat info like page numbers or titles on every page."),
+      q("Which Word feature would best help you present a two-column list of skills neatly, as suggested in the CV activity?", ["A table","A single long paragraph","A footer","Page orientation"], 0, "A table is the best tool for a neat two-column list."),
+      q("What is one advantage of typing a document in Word rather than handwriting it, especially for something like a CV?", ["It's automatically more truthful","It looks clean and professional, is easy to edit, and can be saved and shared digitally","It requires no computer skills at all","It cannot be changed once typed"], 1, "Typed documents look professional, are editable, and are easy to share."),
+      q("Which statement best summarizes why word-processing skills matter, according to the guide?", ["They are only useful for advanced computer experts","They are the backbone of formal communication — CVs, letters, and reports — helping learners present themselves professionally","They are outdated and no longer used","They only matter for programmers"], 1, "Word skills underpin CVs, letters, and reports — key for professional self-presentation.")
+    ] };
+}
+
+async function seedExtras(){
+  // Independent migration so the Microsoft Word Basics quiz is added even to stores
+  // that were already seeded before this quiz existed.
+  const marker = await sGet('seeded:word-basics:v1', true);
+  if(marker) return;
+  const topic = wordBasicsTopic();
+  await sSet('topic:' + topic.id, JSON.stringify(topic), true);
+  const now = Date.now();
+  const asg = { id: uid('asg'), topicId: topic.id,
+    startTime: new Date(now - 5*60*1000).toISOString(),
+    endTime: new Date(now + 14*24*60*60*1000).toISOString() };
+  await sSet('assignment:' + asg.id, JSON.stringify(asg), true);
+  await sSet('seeded:word-basics:v1', '1', true);
+}
+
+/* ---------- data loading ---------- */
+async function loadTopics(){
+  const keys = await sList('topic:', true);
+  const items = [];
+  for(const k of keys){
+    const v = await sGet(k, true);
+    if(v){ try{ items.push(JSON.parse(v)); }catch(e){} }
+  }
+  return items;
+}
+async function loadAssignments(){
+  const keys = await sList('assignment:', true);
+  const items = [];
+  for(const k of keys){
+    const v = await sGet(k, true);
+    if(v){ try{ items.push(JSON.parse(v)); }catch(e){} }
+  }
+  items.sort(function(a,b){ return new Date(a.startTime) - new Date(b.startTime); });
+  return items;
+}
+async function loadScores(){
+  const keys = await sList('score:', false);
+  const out = {};
+  for(const k of keys){
+    const v = await sGet(k, false);
+    if(v){
+      try{
+        const rec = JSON.parse(v);
+        const asgId = k.replace('score:', '');
+        out[asgId] = rec;
+      }catch(e){}
+    }
+  }
+  return out;
+}
+const FACILITATOR_PASSCODE = 'checkpoint2026';
+
+async function loadAll(){
+  await seedIfNeeded();
+  await seedExtras();
+  const authed = await sGet('facilitator-auth', false);
+  state.facilitatorAllowed = authed === '1';
+  if(state.facilitatorAllowed){ state.mode = 'facilitator'; state.view = 'facilitator'; }
+  state.learnerName = await sGet('learner-name', false);
+  state.topics = await loadTopics();
+  state.assignments = await loadAssignments();
+  state.scores = await loadScores();
+  state.loading = false;
+}
+
+/* ---------- status logic ---------- */
+function computeStatus(a){
+  const now = Date.now();
+  const start = new Date(a.startTime).getTime();
+  const end = new Date(a.endTime).getTime();
+  if(now < start) return 'upcoming';
+  if(now > end) return 'closed';
+  return 'open';
+}
+function topicById(id){ return state.topics.find(function(t){ return t.id === id; }); }
+
+/* ---------- render dispatcher ---------- */
+function render(){
+  const app = document.getElementById('app');
+  if(state.loading){ app.innerHTML = '<div class="loading">LOADING BOARD…</div>'; return; }
+  let html = renderHeader();
+  html += '<div class="container">';
+  if(state.mode === 'learner'){
+    if(state.view === 'facilitator-gate'){
+      html += renderFacilitatorGate();
+    } else if(!state.learnerName){
+      html += renderNameGate();
+    } else if(state.view === 'quiz' && state.currentQuiz){
+      html += renderQuiz();
+    } else if(state.view === 'pass' && state.currentQuiz){
+      html += renderPass(state.currentQuiz.assignmentId);
+    } else {
+      html += renderLearnerBoard();
+    }
+  } else {
+    html += renderFacilitator();
+  }
+  html += '</div>';
+  app.innerHTML = html;
+}
+
+function renderHeader(){
+  let right = '';
+  if(state.facilitatorAllowed){
+    right = '' +
+    '<div style="display:flex;align-items:center;gap:10px;">' +
+      '<div class="mode-toggle">' +
+        '<button class="' + (state.mode==='learner'?'active':'') + '" onclick="switchMode(\'learner\')">Learner</button>' +
+        '<button class="' + (state.mode==='facilitator'?'active':'') + '" onclick="switchMode(\'facilitator\')">Facilitator</button>' +
+      '</div>' +
+      '<button class="btn btn-ghost btn-sm" onclick="logoutFacilitator()">Log out</button>' +
+    '</div>';
+  } else if(state.view !== 'facilitator-gate'){
+    right = '<button class="btn btn-ghost btn-sm" onclick="openFacilitatorGate()">Facilitator login</button>';
+  }
+  return '' +
+  '<div class="header">' +
+    '<div class="wordmark">ACCESS<span class="sub">Digital Literacy Checkpoints</span></div>' +
+    right +
+  '</div>';
+}
+
+function switchMode(m){
+  if(m === 'facilitator' && !state.facilitatorAllowed) return;
+  state.mode = m;
+  state.view = m === 'facilitator' ? 'facilitator' : 'board';
+  state.draftTopic = null;
+  state.draftAssignment = null;
+  state.formError = '';
+  render();
+}
+
+function openFacilitatorGate(){
+  state.view = 'facilitator-gate';
+  state.formError = '';
+  render();
+}
+
+function backToBoardFromGate(){
+  state.view = 'board';
+  state.formError = '';
+  render();
+}
+
+function renderFacilitatorGate(){
+  return '' +
+  '<div class="gate">' +
+    '<h2>Facilitator access</h2>' +
+    '<p>Enter the facilitator passcode to manage topics and assignments.</p>' +
+    '<input id="facPasscode" type="password" placeholder="Passcode" onkeydown="if(event.key===\'Enter\') submitFacilitatorPasscode()">' +
+    (state.formError ? '<div class="err" style="text-align:left;">' + escapeHtml(state.formError) + '</div>' : '') +
+    '<button class="btn btn-amber" style="width:100%" onclick="submitFacilitatorPasscode()">Enter</button>' +
+    '<button class="btn btn-ghost" style="width:100%;margin-top:8px;" onclick="backToBoardFromGate()">Cancel</button>' +
+  '</div>';
+}
+
+async function submitFacilitatorPasscode(){
+  const el = document.getElementById('facPasscode');
+  const val = (el.value || '').trim();
+  if(val === FACILITATOR_PASSCODE){
+    state.facilitatorAllowed = true;
+    await sSet('facilitator-auth', '1', false);
+    state.mode = 'facilitator';
+    state.view = 'facilitator';
+    state.formError = '';
+    render();
+  } else {
+    state.formError = 'Incorrect passcode.';
+    render();
+  }
+}
+
+async function logoutFacilitator(){
+  await sDel('facilitator-auth', false);
+  state.facilitatorAllowed = false;
+  state.mode = 'learner';
+  state.view = 'board';
+  render();
+}
+
+/* ---------- name gate ---------- */
+function renderNameGate(){
+  return '' +
+  '<div class="gate">' +
+    '<h2>What is your name?</h2>' +
+    '<p>We will use this to save your results across checkpoints.</p>' +
+    '<input id="nameInput" type="text" placeholder="e.g. Ama Owusu" maxlength="60" onkeydown="if(event.key===\'Enter\') saveLearnerName()">' +
+    '<button class="btn btn-amber" style="width:100%" onclick="saveLearnerName()">Continue</button>' +
+  '</div>';
+}
+async function saveLearnerName(){
+  const el = document.getElementById('nameInput');
+  const val = (el.value || '').trim();
+  if(!val) return;
+  await sSet('learner-name', val, false);
+  state.learnerName = val;
+  render();
+}
+
+/* ---------- learner board ---------- */
+function renderLearnerBoard(){
+  const now = new Date();
+  const nowStr = now.toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  let rows = '';
+  const statusesNow = {};
+  if(state.assignments.length === 0){
+    rows = '<div class="board-empty">No checkpoints have been scheduled yet. Check back soon.</div>';
+  } else {
+    state.assignments.forEach(function(a){
+      const topic = topicById(a.topicId);
+      if(!topic) return;
+      const status = computeStatus(a);
+      statusesNow[a.id] = status;
+      const score = state.scores[a.id];
+      let flapLabel = status === 'open' ? 'OPEN' : (status === 'upcoming' ? 'UPCOMING' : 'CLOSED');
+      let timeLabel = '';
+      if(status === 'upcoming') timeLabel = 'opens ' + fmtDateTime(a.startTime);
+      else if(status === 'open') timeLabel = '<span data-countdown="' + a.id + '">' + fmtDuration(new Date(a.endTime) - now) + '</span> left';
+      else timeLabel = 'closed ' + fmtDateTime(a.endTime);
+
+      let action = '';
+      if(status === 'open' && !score){
+        action = '<button class="btn btn-amber btn-sm" onclick="startQuiz(\'' + a.id + '\')">Board now</button>';
+      } else if(score){
+        action = '<button class="btn btn-outline-light btn-sm" onclick="viewPass(\'' + a.id + '\')">View pass</button>';
+      } else if(status === 'upcoming'){
+        action = '<span style="color:#5C6773;font-family:var(--mono);font-size:11.5px;">not yet</span>';
+      } else {
+        action = '<span style="color:#5C6773;font-family:var(--mono);font-size:11.5px;">missed</span>';
+      }
+
+      rows += '' +
+      '<div class="board-row flip-in">' +
+        '<div class="cell-topic"><div class="t-name">' + escapeHtml(topic.name) + '</div><div class="t-meta">' + topic.questions.length + ' questions</div></div>' +
+        '<div><span class="flap ' + status + '">' + flapLabel + '</span></div>' +
+        '<div class="cell-time">' + timeLabel + '</div>' +
+        '<div class="cell-action">' + action + '</div>' +
+      '</div>';
+    });
+    if(!rows) rows = '<div class="board-empty">No checkpoints have been scheduled yet. Check back soon.</div>';
+  }
+  state.lastStatuses = statusesNow;
+
+  let passRows = '';
+  const scoredIds = Object.keys(state.scores);
+  if(scoredIds.length === 0){
+    passRows = '<div class="empty-state">Completed checkpoints will show up here as boarding passes.</div>';
+  } else {
+    scoredIds.slice().reverse().forEach(function(asgId){
+      const rec = state.scores[asgId];
+      const pct = Math.round((rec.score / rec.total) * 100);
+      const pass = pct >= 60;
+      passRows += '' +
+      '<div class="ticket">' +
+        '<div class="ticket-main">' +
+          '<div class="tm-title">' + escapeHtml(rec.topicName) + '</div>' +
+          '<div class="tm-meta">Completed ' + fmtDateTime(rec.completedAt) + '</div>' +
+        '</div>' +
+        '<div class="ticket-stub">' +
+          '<div class="ticket-score ' + (pass?'':'fail') + '">' + rec.score + '/' + rec.total + '</div>' +
+          '<div class="ticket-pct">' + pct + '%</div>' +
+          '<button class="btn btn-ghost btn-sm" onclick="viewPass(\'' + asgId + '\')">Details</button>' +
+        '</div>' +
+      '</div>';
+    });
+  }
+
+  return '' +
+  '<div class="board">' +
+    '<div class="board-head"><span class="board-title">DEPARTURES · ' + escapeHtml(state.learnerName) + '</span><span class="board-clock" id="boardClock">' + nowStr + '</span></div>' +
+    rows +
+  '</div>' +
+  '<div class="section-head"><span class="section-title">My Boarding Passes</span></div>' +
+  passRows +
+  '<button class="reset-link" onclick="resetLearnerData()">Not you? Clear my name and results on this device</button>';
+}
+
+async function resetLearnerData(){
+  const keys = await sList('score:', false);
+  for(const k of keys){ await sDel(k, false); }
+  await sDel('learner-name', false);
+  state.scores = {};
+  state.learnerName = null;
+  render();
+}
+
+/* ---------- ticking ---------- */
+function tickClock(){
+  if(state.mode !== 'learner' || state.view !== 'board' || !state.learnerName) return;
+  const clockEl = document.getElementById('boardClock');
+  if(clockEl){
+    clockEl.textContent = new Date().toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  }
+  let needsFullRender = false;
+  state.assignments.forEach(function(a){
+    const status = computeStatus(a);
+    if(state.lastStatuses[a.id] && state.lastStatuses[a.id] !== status){
+      needsFullRender = true;
+    }
+    if(status === 'open'){
+      const el = document.querySelector('[data-countdown="' + a.id + '"]');
+      if(el) el.textContent = fmtDuration(new Date(a.endTime) - new Date());
+    }
+  });
+  if(needsFullRender) render();
+}
+setInterval(tickClock, 1000);
+
+/* ---------- quiz taking ---------- */
+function startQuiz(assignmentId){
+  const a = state.assignments.find(function(x){ return x.id === assignmentId; });
+  if(!a) return;
+  if(computeStatus(a) !== 'open') { render(); return; }
+  if(state.scores[assignmentId]){ viewPass(assignmentId); return; }
+  const topic = topicById(a.topicId);
+  if(!topic) return;
+  const order = topic.questions.map(function(_,i){ return i; });
+  state.currentQuiz = {
+    assignmentId: assignmentId,
+    topicId: topic.id,
+    topicName: topic.name,
+    order: order,
+    index: 0,
+    answers: [],
+    selectedIdx: null,
+    score: 0
+  };
+  state.view = 'quiz';
+  render();
+}
+
+function renderQuiz(){
+  const cq = state.currentQuiz;
+  const topic = topicById(cq.topicId);
+  const qIdx = cq.order[cq.index];
+  const q = topic.questions[qIdx];
+  const total = cq.order.length;
+  const answeredThis = cq.selectedIdx !== null;
+  let optionsHtml = '';
+  q.options.forEach(function(opt, i){
+    let cls = 'option';
+    if(answeredThis){
+      if(i === q.correct) cls += ' correct';
+      else if(i === cq.selectedIdx) cls += ' incorrect';
+    }
+    optionsHtml += '<button class="' + cls + '" ' + (answeredThis?'disabled':'') + ' onclick="selectOption(' + i + ')">' + escapeHtml(opt) + '</button>';
+  });
+  let explainHtml = '';
+  if(answeredThis && q.explanation){
+    explainHtml = '<div class="explain">' + escapeHtml(q.explanation) + '</div>';
+  }
+  const isLast = cq.index === total - 1;
+  return '' +
+  '<div class="qcard">' +
+    '<div class="qcard-top">' +
+      '<div class="qcard-topic">' + escapeHtml(cq.topicName) + '</div>' +
+      '<div class="score-chip">SCORE ' + cq.score + '/' + total + '</div>' +
+    '</div>' +
+    '<div class="progress-track"><div class="progress-fill" style="width:' + (cq.index/total*100) + '%"></div></div>' +
+    '<div class="q-text">Q' + (cq.index+1) + '. ' + escapeHtml(q.text) + '</div>' +
+    optionsHtml +
+    explainHtml +
+    '<div class="qcard-foot">' +
+      '<button class="btn btn-ghost btn-sm" onclick="exitQuiz()">Exit without saving</button>' +
+      (answeredThis ? '<button class="btn btn-dark" onclick="nextQuestion()">' + (isLast ? 'Finish' : 'Next') + '</button>' : '') +
+    '</div>' +
+  '</div>';
+}
+
+function selectOption(i){
+  const cq = state.currentQuiz;
+  if(cq.selectedIdx !== null) return;
+  const topic = topicById(cq.topicId);
+  const qIdx = cq.order[cq.index];
+  const q = topic.questions[qIdx];
+  cq.selectedIdx = i;
+  const correct = i === q.correct;
+  if(correct) cq.score++;
+  cq.answers.push({ questionText: q.text, selected: q.options[i], correctOption: q.options[q.correct], correct: correct });
+  render();
+}
+
+function nextQuestion(){
+  const cq = state.currentQuiz;
+  const total = cq.order.length;
+  if(cq.index + 1 < total){
+    cq.index++;
+    cq.selectedIdx = null;
+    render();
+  } else {
+    finishQuiz();
+  }
+}
+
+function exitQuiz(){
+  state.currentQuiz = null;
+  state.view = 'board';
+  render();
+}
+
+async function finishQuiz(){
+  const cq = state.currentQuiz;
+  const record = {
+    topicName: cq.topicName,
+    score: cq.score,
+    total: cq.order.length,
+    completedAt: new Date().toISOString(),
+    answers: cq.answers
+  };
+  await sSet('score:' + cq.assignmentId, JSON.stringify(record), false);
+  state.scores[cq.assignmentId] = record;
+  state.view = 'pass';
+  render();
+}
+
+function viewPass(assignmentId){
+  state.currentQuiz = { assignmentId: assignmentId };
+  state.view = 'pass';
+  render();
+}
+
+function renderPass(assignmentId){
+  const rec = state.scores[assignmentId];
+  const a = state.assignments.find(function(x){ return x.id === assignmentId; });
+  if(!rec){
+    return '<div class="empty-state">No boarding pass found for this checkpoint yet.</div><button class="btn btn-outline" style="margin-top:14px" onclick="backToBoard()">Back to board</button>';
+  }
+  const pct = Math.round((rec.score / rec.total) * 100);
+  const stillOpen = a ? computeStatus(a) === 'open' : false;
+  let reviewHtml = '';
+  if(stillOpen){
+    reviewHtml += '<div class="pass-review">';
+    rec.answers.forEach(function(ans, i){
+      reviewHtml += '' +
+      '<div class="review-item">' +
+        '<div class="rq">Q' + (i+1) + '. ' + escapeHtml(ans.questionText) + '</div>' +
+        '<div class="ra ' + (ans.correct?'right':'wrong') + '">Your answer: ' + escapeHtml(ans.selected) + (ans.correct ? ' ✓' : ' ✗') + '</div>' +
+        (ans.correct ? '' : '<div class="ra right">Correct answer: ' + escapeHtml(ans.correctOption) + '</div>') +
+      '</div>';
+    });
+    reviewHtml += '</div>';
+  } else {
+    reviewHtml = '<div class="locked-note">This checkpoint window has closed, so the question-by-question review is no longer accessible. Your score is preserved above.</div>';
+  }
+  return '' +
+  '<div class="pass">' +
+    '<div class="pass-head"><div class="pl">BOARDING PASS</div><div class="pn">' + escapeHtml(rec.topicName) + '</div></div>' +
+    '<div class="pass-body">' +
+      '<div class="pass-row"><span class="k">Passenger</span><span class="v">' + escapeHtml(state.learnerName || '') + '</span></div>' +
+      '<div class="pass-row"><span class="k">Score</span><span class="v">' + rec.score + ' / ' + rec.total + '</span></div>' +
+      '<div class="pass-row"><span class="k">Result</span><span class="v">' + pct + '%</span></div>' +
+      '<div class="pass-row"><span class="k">Completed</span><span class="v">' + fmtDateTime(rec.completedAt) + '</span></div>' +
+      reviewHtml +
+    '</div>' +
+  '</div>' +
+  '<button class="btn btn-outline" style="margin-top:18px" onclick="backToBoard()">Back to board</button>';
+}
+
+function backToBoard(){
+  state.currentQuiz = null;
+  state.view = 'board';
+  render();
+}
+
+/* ---------- facilitator ---------- */
+function renderFacilitator(){
+  let html = '<div class="admin-note">Changes made here are visible to everyone using this app.</div>';
+  html += '<div class="tabs">' +
+    '<button class="' + (state.facTab==='topics'?'active':'') + '" onclick="setFacTab(\'topics\')">Topics</button>' +
+    '<button class="' + (state.facTab==='assignments'?'active':'') + '" onclick="setFacTab(\'assignments\')">Assignments</button>' +
+  '</div>';
+  if(state.draftTopic){
+    html += renderTopicForm();
+  } else if(state.draftAssignment){
+    html += renderAssignmentForm();
+  } else if(state.facTab === 'topics'){
+    html += renderTopicsList();
+  } else {
+    html += renderAssignmentsList();
+  }
+  return html;
+}
+function setFacTab(tab){ state.facTab = tab; state.draftTopic = null; state.draftAssignment = null; state.formError=''; render(); }
+
+function renderTopicsList(){
+  let html = '<div class="section-head"><span class="section-title">Topics</span><button class="btn btn-dark btn-sm" onclick="newTopic()">+ New topic</button></div>';
+  if(state.topics.length === 0){
+    html += '<div class="empty-state">No topics yet. Create one to start building checkpoints.</div>';
+  } else {
+    state.topics.forEach(function(t){
+      html += '' +
+      '<div class="list-card">' +
+        '<div><div class="lc-name">' + escapeHtml(t.name) + '</div><div class="lc-meta">' + t.questions.length + ' questions · ' + escapeHtml(t.description || '') + '</div></div>' +
+        '<div class="lc-actions">' +
+          '<button class="btn btn-outline btn-sm" onclick="editTopic(\'' + t.id + '\')">Edit</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="deleteTopic(\'' + t.id + '\')">Delete</button>' +
+        '</div>' +
+      '</div>';
+    });
+  }
+  return html;
+}
+
+function newTopic(){
+  state.draftTopic = { id: null, name:'', description:'', questions:[ blankQuestion() ] };
+  render();
+}
+function blankQuestion(){ return { id: uid('q'), text:'', options:['','','',''], correct:0, explanation:'' }; }
+function editTopic(id){
+  const t = topicById(id);
+  if(!t) return;
+  state.draftTopic = JSON.parse(JSON.stringify(t));
+  render();
+}
+function addDraftQuestion(){ state.draftTopic.questions.push(blankQuestion()); render(); }
+function removeDraftQuestion(qIdx){
+  if(state.draftTopic.questions.length <= 1) return;
+  state.draftTopic.questions.splice(qIdx, 1);
+  render();
+}
+function cancelTopicForm(){ state.draftTopic = null; state.formError=''; render(); }
+
+function setDraftTopicField(field, value){ state.draftTopic[field] = value; }
+function setDraftQuestionField(qIdx, field, value){ state.draftTopic.questions[qIdx][field] = value; }
+function setDraftOptionField(qIdx, oIdx, value){ state.draftTopic.questions[qIdx].options[oIdx] = value; }
+function setDraftCorrectOption(qIdx, oIdx){ state.draftTopic.questions[qIdx].correct = oIdx; }
+function setDraftAssignmentField(field, value){ state.draftAssignment[field] = value; }
+
+function renderTopicForm(){
+  const dt = state.draftTopic;
+  let qBlocks = '';
+  dt.questions.forEach(function(q, qi){
+    let opts = '';
+    q.options.forEach(function(opt, oi){
+      opts += '' +
+      '<div class="opt-row">' +
+        '<input type="radio" name="correct_' + qi + '" ' + (q.correct===oi?'checked':'') + ' onchange="setDraftCorrectOption(' + qi + ',' + oi + ')">' +
+        '<input type="text" placeholder="Option ' + (oi+1) + '" value="' + escapeHtml(q.options[oi]) + '" oninput="setDraftOptionField(' + qi + ',' + oi + ',this.value)">' +
+      '</div>';
+    });
+    qBlocks += '' +
+    '<div class="q-block">' +
+      '<div class="q-block-head"><span class="qn">QUESTION ' + (qi+1) + '</span>' +
+        (dt.questions.length > 1 ? '<button class="btn btn-danger btn-sm" onclick="removeDraftQuestion(' + qi + ')">Remove</button>' : '') +
+      '</div>' +
+      '<div class="field"><label>Question text</label><textarea oninput="setDraftQuestionField(' + qi + ',\'text\',this.value)">' + escapeHtml(q.text) + '</textarea></div>' +
+      '<div class="field"><label>Options (select the correct one)</label>' + opts + '</div>' +
+      '<div class="field"><label>Explanation (optional)</label><textarea oninput="setDraftQuestionField(' + qi + ',\'explanation\',this.value)">' + escapeHtml(q.explanation) + '</textarea></div>' +
+    '</div>';
+  });
+  return '' +
+  '<div class="form-card">' +
+    '<div class="field"><label>Topic name</label><input type="text" id="topicName" value="' + escapeHtml(dt.name) + '" oninput="setDraftTopicField(\'name\',this.value)"></div>' +
+    '<div class="field"><label>Description</label><input type="text" id="topicDesc" value="' + escapeHtml(dt.description) + '" oninput="setDraftTopicField(\'description\',this.value)"></div>' +
+    qBlocks +
+    (state.formError ? '<div class="err">' + escapeHtml(state.formError) + '</div>' : '') +
+    '<div class="form-actions">' +
+      '<button class="btn btn-ghost" onclick="addDraftQuestion()">+ Add question</button>' +
+      '<button class="btn btn-outline" onclick="cancelTopicForm()">Cancel</button>' +
+      '<button class="btn btn-dark" onclick="saveTopicForm()">Save topic</button>' +
+    '</div>' +
+  '</div>';
+}
+
+async function saveTopicForm(){
+  const dt = state.draftTopic;
+  if(!dt.name.trim()){ state.formError = 'Give the topic a name.'; render(); return; }
+  for(const q of dt.questions){
+    if(!q.text.trim() || q.options.some(function(o){ return !o.trim(); })){
+      state.formError = 'Every question needs text and all 4 options filled in.';
+      render();
+      return;
+    }
+  }
+  const id = dt.id || uid('topic');
+  const topic = { id: id, name: dt.name.trim(), description: dt.description.trim(), questions: dt.questions };
+  await sSet('topic:' + id, JSON.stringify(topic), true);
+  state.topics = await loadTopics();
+  state.draftTopic = null;
+  state.formError = '';
+  render();
+}
+
+async function deleteTopic(id){
+  await sDel('topic:' + id, true);
+  const linked = state.assignments.filter(function(a){ return a.topicId === id; });
+  for(const a of linked){ await sDel('assignment:' + a.id, true); }
+  state.topics = await loadTopics();
+  state.assignments = await loadAssignments();
+  render();
+}
+
+/* assignments */
+function renderAssignmentsList(){
+  let html = '<div class="section-head"><span class="section-title">Assignments</span>' +
+    '<button class="btn btn-dark btn-sm" ' + (state.topics.length===0?'disabled':'') + ' onclick="newAssignment()">+ New assignment</button></div>';
+  if(state.topics.length === 0){
+    html += '<div class="empty-state">Create a topic first, then assign it with an open/close time.</div>';
+    return html;
+  }
+  if(state.assignments.length === 0){
+    html += '<div class="empty-state">No assignments yet. Assign a topic to make it visible to learners.</div>';
+  } else {
+    state.assignments.forEach(function(a){
+      const topic = topicById(a.topicId);
+      const status = computeStatus(a);
+      html += '' +
+      '<div class="list-card">' +
+        '<div><div class="lc-name">' + escapeHtml(topic ? topic.name : '(deleted topic)') + ' <span class="flap ' + status + '" style="margin-left:8px;">' + status.toUpperCase() + '</span></div>' +
+        '<div class="lc-meta">' + fmtDateTime(a.startTime) + ' → ' + fmtDateTime(a.endTime) + '</div></div>' +
+        '<div class="lc-actions">' +
+          '<button class="btn btn-outline btn-sm" onclick="editAssignment(\'' + a.id + '\')">Edit</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="deleteAssignment(\'' + a.id + '\')">Delete</button>' +
+        '</div>' +
+      '</div>';
+    });
+  }
+  return html;
+}
+
+function toLocalInputValue(iso){
+  const d = new Date(iso);
+  const pad = function(n){ return String(n).padStart(2,'0'); };
+  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+function newAssignment(){
+  const now = new Date();
+  const later = new Date(now.getTime() + 60*60*1000);
+  state.draftAssignment = { id: null, topicId: state.topics[0].id, startTime: toLocalInputValue(now), endTime: toLocalInputValue(later) };
+  render();
+}
+function editAssignment(id){
+  const a = state.assignments.find(function(x){ return x.id === id; });
+  if(!a) return;
+  state.draftAssignment = { id: a.id, topicId: a.topicId, startTime: toLocalInputValue(a.startTime), endTime: toLocalInputValue(a.endTime) };
+  render();
+}
+function cancelAssignmentForm(){ state.draftAssignment = null; state.formError=''; render(); }
+
+function renderAssignmentForm(){
+  const da = state.draftAssignment;
+  let options = state.topics.map(function(t){
+    return '<option value="' + t.id + '" ' + (t.id===da.topicId?'selected':'') + '>' + escapeHtml(t.name) + '</option>';
+  }).join('');
+  return '' +
+  '<div class="form-card">' +
+    '<div class="field"><label>Topic</label><select onchange="setDraftAssignmentField(\'topicId\',this.value)">' + options + '</select></div>' +
+    '<div class="row2">' +
+      '<div class="field"><label>Opens</label><input type="datetime-local" value="' + da.startTime + '" onchange="setDraftAssignmentField(\'startTime\',this.value)"></div>' +
+      '<div class="field"><label>Closes</label><input type="datetime-local" value="' + da.endTime + '" onchange="setDraftAssignmentField(\'endTime\',this.value)"></div>' +
+    '</div>' +
+    (state.formError ? '<div class="err">' + escapeHtml(state.formError) + '</div>' : '') +
+    '<div class="form-actions">' +
+      '<button class="btn btn-outline" onclick="cancelAssignmentForm()">Cancel</button>' +
+      '<button class="btn btn-dark" onclick="saveAssignmentForm()">Save assignment</button>' +
+    '</div>' +
+  '</div>';
+}
+
+async function saveAssignmentForm(){
+  const da = state.draftAssignment;
+  const start = new Date(da.startTime);
+  const end = new Date(da.endTime);
+  if(isNaN(start) || isNaN(end) || end <= start){
+    state.formError = 'Closing time must be after the opening time.';
+    render();
+    return;
+  }
+  const id = da.id || uid('asg');
+  const record = { id: id, topicId: da.topicId, startTime: start.toISOString(), endTime: end.toISOString() };
+  await sSet('assignment:' + id, JSON.stringify(record), true);
+  state.assignments = await loadAssignments();
+  state.draftAssignment = null;
+  state.formError = '';
+  render();
+}
+
+async function deleteAssignment(id){
+  await sDel('assignment:' + id, true);
+  state.assignments = await loadAssignments();
+  render();
+}
+
+/* ---------- init ---------- */
+(async function init(){
+  await loadAll();
+  render();
+})();
+</script>
+</body>
+</html>
