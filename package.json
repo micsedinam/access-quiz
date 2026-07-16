@@ -1,0 +1,10 @@
+{
+  "name": "access-digital-literacy-checkpoints",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ACCESS — Digital Literacy Checkpoints quiz platform (Vercel-hosted).",
+  "type": "module",
+  "dependencies": {
+    "@upstash/redis": "^1.34.3"
+  }
+}
