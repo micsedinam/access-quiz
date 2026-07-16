@@ -476,6 +476,29 @@ async function loadResults(){
   items.sort(function(a,b){ return new Date(b.completedAt) - new Date(a.completedAt); });
   return items;
 }
+
+// Self-healing migration: scores completed before the shared Results tab
+// existed only ever wrote the personal 'score:' record, so the facilitator
+// never saw them. A learner's own browser is the only place that still has
+// that history, so on load it fills in any shared 'result:' record it's
+// missing for its own past attempts.
+async function backfillMissingResults(){
+  const asgIds = Object.keys(state.scores);
+  for(const asgId of asgIds){
+    const rec = state.scores[asgId];
+    if(!rec) continue;
+    const key = 'result:' + asgId + ':' + window.storage.clientId;
+    const existing = await sGet(key, true);
+    if(existing) continue;
+    const asg = state.assignments.find(function(a){ return a.id === asgId; });
+    const sharedResult = Object.assign({
+      assignmentId: asgId,
+      topicId: asg ? asg.topicId : null,
+      learnerName: state.learnerName
+    }, rec);
+    await sSet(key, JSON.stringify(sharedResult), true);
+  }
+}
 const FACILITATOR_PASSCODE = 'checkpoint2026';
 
 async function loadAll(){
@@ -489,6 +512,7 @@ async function loadAll(){
   state.topics = await loadTopics();
   state.assignments = await loadAssignments();
   state.scores = await loadScores();
+  await backfillMissingResults();
   state.results = await loadResults();
   state.loading = false;
 }
@@ -1195,6 +1219,7 @@ async function deleteAssignment(id){
 
 /* ---------- results ---------- */
 async function refreshResults(){
+  await backfillMissingResults();
   state.results = await loadResults();
   render();
 }
