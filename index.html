@@ -103,6 +103,8 @@ button{font-family:var(--sans);}
 .qcard-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:12px;}
 .qcard-topic{font-weight:700;font-size:14px;}
 .score-chip{font-family:var(--mono);background:var(--board-bg);color:var(--amber);padding:6px 14px;border-radius:999px;font-size:12.5px;font-weight:700;letter-spacing:.05em;white-space:nowrap;}
+.timer-chip{font-family:var(--mono);background:var(--board-bg);color:#fff;padding:6px 14px;border-radius:999px;font-size:12.5px;font-weight:700;letter-spacing:.05em;white-space:nowrap;}
+.timer-chip.low{background:var(--red);}
 .progress-track{height:6px;background:var(--border);border-radius:999px;overflow:hidden;margin-bottom:24px;}
 .progress-fill{height:100%;background:var(--teal);transition:width .3s ease;}
 .q-text{font-size:16px;font-weight:700;margin-bottom:18px;line-height:1.45;}
@@ -303,7 +305,9 @@ async function seedIfNeeded(){
   const seedAssignments = [
     { id: uid('asg'), topicId: topics[0].id, startTime: new Date(now - 60*60*1000).toISOString(), endTime: new Date(now + 2*60*60*1000).toISOString() },
     { id: uid('asg'), topicId: topics[1].id, startTime: new Date(now + 24*60*60*1000).toISOString(), endTime: new Date(now + 48*60*60*1000).toISOString() },
-    { id: uid('asg'), topicId: topics[2].id, startTime: new Date(now - 72*60*60*1000).toISOString(), endTime: new Date(now - 48*60*60*1000).toISOString() }
+    { id: uid('asg'), topicId: topics[2].id, startTime: new Date(now - 72*60*60*1000).toISOString(), endTime: new Date(now - 48*60*60*1000).toISOString() },
+    { id: uid('asg'), topicId: topics[3].id, startTime: new Date(now - 5*60*1000).toISOString(), endTime: new Date(now + 14*24*60*60*1000).toISOString() },
+    { id: uid('asg'), topicId: topics[4].id, startTime: new Date(now - 5*60*1000).toISOString(), endTime: new Date(now + 14*24*60*60*1000).toISOString() }
   ];
   for(const a of seedAssignments){
     await sSet('assignment:' + a.id, JSON.stringify(a), true);
@@ -383,6 +387,28 @@ async function seedExtras(){
   await sSet('seeded:word-basics:v1', '1', true);
 }
 
+async function seedMissingAssignments(){
+  // One-time backfill: two starter topics (Email Etiquette, Basic Computer &
+  // File Skills) never got a seed assignment, so they never appeared on the
+  // Assignments tab or the learner board. Give any topic that still has no
+  // assignment a default open window.
+  const marker = await sGet('seeded:missing-assignments:v1', true);
+  if(marker) return;
+  const topics = await loadTopics();
+  const assignments = await loadAssignments();
+  const assignedTopicIds = new Set(assignments.map(function(a){ return a.topicId; }));
+  const now = Date.now();
+  for(const t of topics){
+    if(assignedTopicIds.has(t.id)) continue;
+    const asg = { id: uid('asg'), topicId: t.id,
+      startTime: new Date(now - 5*60*1000).toISOString(),
+      endTime: new Date(now + 14*24*60*60*1000).toISOString(),
+      timeLimitMinutes: null };
+    await sSet('assignment:' + asg.id, JSON.stringify(asg), true);
+  }
+  await sSet('seeded:missing-assignments:v1', '1', true);
+}
+
 /* ---------- data loading ---------- */
 async function loadTopics(){
   const keys = await sList('topic:', true);
@@ -423,6 +449,7 @@ const FACILITATOR_PASSCODE = 'checkpoint2026';
 async function loadAll(){
   await seedIfNeeded();
   await seedExtras();
+  await seedMissingAssignments();
   const authed = await sGet('facilitator-auth', false);
   state.facilitatorAllowed = authed === '1';
   if(state.facilitatorAllowed){ state.mode = 'facilitator'; state.view = 'facilitator'; }
@@ -601,7 +628,7 @@ function renderLearnerBoard(){
 
       rows += '' +
       '<div class="board-row flip-in">' +
-        '<div class="cell-topic"><div class="t-name">' + escapeHtml(topic.name) + '</div><div class="t-meta">' + topic.questions.length + ' questions</div></div>' +
+        '<div class="cell-topic"><div class="t-name">' + escapeHtml(topic.name) + '</div><div class="t-meta">' + topic.questions.length + ' questions' + (a.timeLimitMinutes ? ' · ' + a.timeLimitMinutes + ' min limit' : '') + '</div></div>' +
         '<div><span class="flap ' + status + '">' + flapLabel + '</span></div>' +
         '<div class="cell-time">' + timeLabel + '</div>' +
         '<div class="cell-action">' + action + '</div>' +
@@ -656,6 +683,9 @@ async function resetLearnerData(){
 
 /* ---------- ticking ---------- */
 function tickClock(){
+  if(state.mode === 'learner' && state.view === 'quiz' && state.currentQuiz && state.currentQuiz.deadline){
+    tickQuizTimer();
+  }
   if(state.mode !== 'learner' || state.view !== 'board' || !state.learnerName) return;
   const clockEl = document.getElementById('boardClock');
   if(clockEl){
@@ -676,8 +706,40 @@ function tickClock(){
 }
 setInterval(tickClock, 1000);
 
+function tickQuizTimer(){
+  const cq = state.currentQuiz;
+  const remaining = cq.deadline - Date.now();
+  if(remaining <= 0){
+    finishQuiz(true);
+    return;
+  }
+  const el = document.getElementById('quizTimer');
+  if(el){
+    el.textContent = fmtDuration(remaining);
+    el.classList.toggle('low', remaining < 60000);
+  }
+}
+
+/* ---------- pick up facilitator changes (open/close times, time limits, new topics) ---------- */
+const ASSIGNMENT_POLL_MS = 20000;
+async function pollAssignments(){
+  if(state.mode !== 'learner' || state.view !== 'board' || !state.learnerName) return;
+  try{
+    const freshAssignments = await loadAssignments();
+    const freshTopics = await loadTopics();
+    const changed = JSON.stringify(freshAssignments) !== JSON.stringify(state.assignments) ||
+                    JSON.stringify(freshTopics) !== JSON.stringify(state.topics);
+    if(changed){
+      state.assignments = freshAssignments;
+      state.topics = freshTopics;
+      render();
+    }
+  }catch(e){ /* stay on last known-good data */ }
+}
+setInterval(pollAssignments, ASSIGNMENT_POLL_MS);
+
 /* ---------- quiz taking ---------- */
-function startQuiz(assignmentId){
+async function startQuiz(assignmentId){
   const a = state.assignments.find(function(x){ return x.id === assignmentId; });
   if(!a) return;
   if(computeStatus(a) !== 'open') { render(); return; }
@@ -693,9 +755,20 @@ function startQuiz(assignmentId){
     index: 0,
     answers: [],
     selectedIdx: null,
-    score: 0
+    score: 0,
+    timeLimitMinutes: a.timeLimitMinutes || null,
+    deadline: null
   };
   state.view = 'quiz';
+  if(state.currentQuiz.timeLimitMinutes){
+    const startKey = 'quiz-start:' + assignmentId;
+    let startedAt = await sGet(startKey, false);
+    if(!startedAt){
+      startedAt = new Date().toISOString();
+      await sSet(startKey, startedAt, false);
+    }
+    state.currentQuiz.deadline = new Date(startedAt).getTime() + state.currentQuiz.timeLimitMinutes * 60 * 1000;
+  }
   render();
 }
 
@@ -720,11 +793,19 @@ function renderQuiz(){
     explainHtml = '<div class="explain">' + escapeHtml(q.explanation) + '</div>';
   }
   const isLast = cq.index === total - 1;
+  let timerChip = '';
+  if(cq.deadline){
+    const remaining = Math.max(0, cq.deadline - Date.now());
+    timerChip = '<div class="timer-chip' + (remaining < 60000 ? ' low' : '') + '" id="quizTimer">' + fmtDuration(remaining) + '</div>';
+  }
   return '' +
   '<div class="qcard">' +
     '<div class="qcard-top">' +
       '<div class="qcard-topic">' + escapeHtml(cq.topicName) + '</div>' +
-      '<div class="score-chip">SCORE ' + cq.score + '/' + total + '</div>' +
+      '<div style="display:flex;gap:8px;align-items:center;">' +
+        timerChip +
+        '<div class="score-chip">SCORE ' + cq.score + '/' + total + '</div>' +
+      '</div>' +
     '</div>' +
     '<div class="progress-track"><div class="progress-fill" style="width:' + (cq.index/total*100) + '%"></div></div>' +
     '<div class="q-text">Q' + (cq.index+1) + '. ' + escapeHtml(q.text) + '</div>' +
@@ -768,16 +849,18 @@ function exitQuiz(){
   render();
 }
 
-async function finishQuiz(){
+async function finishQuiz(timedOut){
   const cq = state.currentQuiz;
   const record = {
     topicName: cq.topicName,
     score: cq.score,
     total: cq.order.length,
     completedAt: new Date().toISOString(),
-    answers: cq.answers
+    answers: cq.answers,
+    timedOut: !!timedOut
   };
   await sSet('score:' + cq.assignmentId, JSON.stringify(record), false);
+  if(cq.timeLimitMinutes){ await sDel('quiz-start:' + cq.assignmentId, false); }
   state.scores[cq.assignmentId] = record;
   state.view = 'pass';
   render();
@@ -798,6 +881,9 @@ function renderPass(assignmentId){
   const pct = Math.round((rec.score / rec.total) * 100);
   const stillOpen = a ? computeStatus(a) === 'open' : false;
   let reviewHtml = '';
+  if(rec.timedOut){
+    reviewHtml += '<div class="locked-note">Time ran out before you finished — this pass reflects only the questions you answered before the timer expired.</div>';
+  }
   if(stillOpen){
     reviewHtml += '<div class="pass-review">';
     rec.answers.forEach(function(ans, i){
@@ -810,7 +896,7 @@ function renderPass(assignmentId){
     });
     reviewHtml += '</div>';
   } else {
-    reviewHtml = '<div class="locked-note">This checkpoint window has closed, so the question-by-question review is no longer accessible. Your score is preserved above.</div>';
+    reviewHtml += '<div class="locked-note">This checkpoint window has closed, so the question-by-question review is no longer accessible. Your score is preserved above.</div>';
   }
   return '' +
   '<div class="pass">' +
@@ -977,7 +1063,7 @@ function renderAssignmentsList(){
       html += '' +
       '<div class="list-card">' +
         '<div><div class="lc-name">' + escapeHtml(topic ? topic.name : '(deleted topic)') + ' <span class="flap ' + status + '" style="margin-left:8px;">' + status.toUpperCase() + '</span></div>' +
-        '<div class="lc-meta">' + fmtDateTime(a.startTime) + ' → ' + fmtDateTime(a.endTime) + '</div></div>' +
+        '<div class="lc-meta">' + fmtDateTime(a.startTime) + ' → ' + fmtDateTime(a.endTime) + (a.timeLimitMinutes ? ' · ' + a.timeLimitMinutes + ' min limit' : '') + '</div></div>' +
         '<div class="lc-actions">' +
           '<button class="btn btn-outline btn-sm" onclick="editAssignment(\'' + a.id + '\')">Edit</button>' +
           '<button class="btn btn-danger btn-sm" onclick="deleteAssignment(\'' + a.id + '\')">Delete</button>' +
@@ -996,13 +1082,13 @@ function toLocalInputValue(iso){
 function newAssignment(){
   const now = new Date();
   const later = new Date(now.getTime() + 60*60*1000);
-  state.draftAssignment = { id: null, topicId: state.topics[0].id, startTime: toLocalInputValue(now), endTime: toLocalInputValue(later) };
+  state.draftAssignment = { id: null, topicId: state.topics[0].id, startTime: toLocalInputValue(now), endTime: toLocalInputValue(later), timeLimitMinutes: '' };
   render();
 }
 function editAssignment(id){
   const a = state.assignments.find(function(x){ return x.id === id; });
   if(!a) return;
-  state.draftAssignment = { id: a.id, topicId: a.topicId, startTime: toLocalInputValue(a.startTime), endTime: toLocalInputValue(a.endTime) };
+  state.draftAssignment = { id: a.id, topicId: a.topicId, startTime: toLocalInputValue(a.startTime), endTime: toLocalInputValue(a.endTime), timeLimitMinutes: a.timeLimitMinutes ? String(a.timeLimitMinutes) : '' };
   render();
 }
 function cancelAssignmentForm(){ state.draftAssignment = null; state.formError=''; render(); }
@@ -1019,6 +1105,7 @@ function renderAssignmentForm(){
       '<div class="field"><label>Opens</label><input type="datetime-local" value="' + da.startTime + '" onchange="setDraftAssignmentField(\'startTime\',this.value)"></div>' +
       '<div class="field"><label>Closes</label><input type="datetime-local" value="' + da.endTime + '" onchange="setDraftAssignmentField(\'endTime\',this.value)"></div>' +
     '</div>' +
+    '<div class="field"><label>Time limit per attempt (minutes, optional)</label><input type="number" min="1" step="1" placeholder="No limit" value="' + escapeHtml(da.timeLimitMinutes || '') + '" onchange="setDraftAssignmentField(\'timeLimitMinutes\',this.value)"></div>' +
     (state.formError ? '<div class="err">' + escapeHtml(state.formError) + '</div>' : '') +
     '<div class="form-actions">' +
       '<button class="btn btn-outline" onclick="cancelAssignmentForm()">Cancel</button>' +
@@ -1036,8 +1123,19 @@ async function saveAssignmentForm(){
     render();
     return;
   }
+  const rawLimit = (da.timeLimitMinutes || '').toString().trim();
+  let timeLimitMinutes = null;
+  if(rawLimit){
+    const n = Number(rawLimit);
+    if(!Number.isFinite(n) || n <= 0){
+      state.formError = 'Time limit must be a positive number of minutes.';
+      render();
+      return;
+    }
+    timeLimitMinutes = Math.round(n);
+  }
   const id = da.id || uid('asg');
-  const record = { id: id, topicId: da.topicId, startTime: start.toISOString(), endTime: end.toISOString() };
+  const record = { id: id, topicId: da.topicId, startTime: start.toISOString(), endTime: end.toISOString(), timeLimitMinutes: timeLimitMinutes };
   await sSet('assignment:' + id, JSON.stringify(record), true);
   state.assignments = await loadAssignments();
   state.draftAssignment = null;
