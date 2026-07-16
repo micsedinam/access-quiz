@@ -146,7 +146,26 @@
   .list-card .lc-actions{display:flex;gap:8px;}
   .empty-state{background:var(--surface);border:1px dashed var(--border);border-radius:10px;padding:26px;text-align:center;color:var(--ink-soft);font-size:13.5px;}
 
-  .form-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:16px;}
+  .result-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin-bottom:16px;}
+.result-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:2px;}
+.result-head .rh-name{font-weight:700;font-size:14.5px;}
+.result-head .rh-stats{font-family:var(--mono);font-size:12px;color:var(--ink-soft);text-align:right;white-space:nowrap;}
+.miss-list{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);}
+.miss-title{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--ink-soft);text-transform:uppercase;margin-bottom:8px;}
+.miss-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0;border-bottom:1px dashed var(--border);font-size:12.5px;}
+.miss-row:last-child{border-bottom:none;}
+.miss-row .mq{flex:1;}
+.miss-badge{font-family:var(--mono);font-weight:700;padding:2px 9px;border-radius:999px;font-size:11px;white-space:nowrap;}
+.miss-badge.high{background:var(--red-soft);color:var(--red);}
+.miss-badge.med{background:#FFF4E0;color:#9A6400;}
+.miss-badge.low{background:var(--teal-soft);color:#0F6B48;}
+.roster-table{width:100%;border-collapse:collapse;margin-top:14px;font-size:12.5px;}
+.roster-table th{text-align:left;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--ink-soft);text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--border);}
+.roster-table td{padding:8px;border-bottom:1px solid var(--border);}
+.roster-table tr:last-child td{border-bottom:none;}
+.toggle-link{background:none;border:none;color:var(--ink-soft);font-size:12px;text-decoration:underline;cursor:pointer;padding:0;margin-top:12px;}
+
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:16px;}
   .field{margin-bottom:15px;}
   .field label{display:block;font-size:11.5px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;}
   .field input, .field textarea, .field select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:var(--sans);font-size:14px;}
@@ -199,7 +218,8 @@
     get:    function(key, shared){ return call('get',    { key: key, shared: !!shared }); },
     set:    function(key, value, shared){ return call('set', { key: key, value: value, shared: !!shared }); },
     delete: function(key, shared){ return call('delete', { key: key, shared: !!shared }); },
-    list:   function(prefix, shared){ return call('list', { prefix: prefix || '', shared: !!shared }); }
+    list:   function(prefix, shared){ return call('list', { prefix: prefix || '', shared: !!shared }); },
+    clientId: clientId
   };
 })();
 
@@ -247,6 +267,8 @@ let state = {
   topics: [],
   assignments: [],
   scores: {},
+  results: [],
+  expandedRosters: {},
   currentQuiz: null,
   facTab: 'topics',
   draftTopic: null,
@@ -444,6 +466,16 @@ async function loadScores(){
   }
   return out;
 }
+async function loadResults(){
+  const keys = await sList('result:', true);
+  const items = [];
+  for(const k of keys){
+    const v = await sGet(k, true);
+    if(v){ try{ items.push(JSON.parse(v)); }catch(e){} }
+  }
+  items.sort(function(a,b){ return new Date(b.completedAt) - new Date(a.completedAt); });
+  return items;
+}
 const FACILITATOR_PASSCODE = 'checkpoint2026';
 
 async function loadAll(){
@@ -457,6 +489,7 @@ async function loadAll(){
   state.topics = await loadTopics();
   state.assignments = await loadAssignments();
   state.scores = await loadScores();
+  state.results = await loadResults();
   state.loading = false;
 }
 
@@ -862,6 +895,14 @@ async function finishQuiz(timedOut){
   await sSet('score:' + cq.assignmentId, JSON.stringify(record), false);
   if(cq.timeLimitMinutes){ await sDel('quiz-start:' + cq.assignmentId, false); }
   state.scores[cq.assignmentId] = record;
+
+  const sharedResult = Object.assign({
+    assignmentId: cq.assignmentId,
+    topicId: cq.topicId,
+    learnerName: state.learnerName
+  }, record);
+  await sSet('result:' + cq.assignmentId + ':' + window.storage.clientId, JSON.stringify(sharedResult), true);
+
   state.view = 'pass';
   render();
 }
@@ -924,6 +965,7 @@ function renderFacilitator(){
   html += '<div class="tabs">' +
     '<button class="' + (state.facTab==='topics'?'active':'') + '" onclick="setFacTab(\'topics\')">Topics</button>' +
     '<button class="' + (state.facTab==='assignments'?'active':'') + '" onclick="setFacTab(\'assignments\')">Assignments</button>' +
+    '<button class="' + (state.facTab==='results'?'active':'') + '" onclick="setFacTab(\'results\')">Results</button>' +
   '</div>';
   if(state.draftTopic){
     html += renderTopicForm();
@@ -931,8 +973,10 @@ function renderFacilitator(){
     html += renderAssignmentForm();
   } else if(state.facTab === 'topics'){
     html += renderTopicsList();
-  } else {
+  } else if(state.facTab === 'assignments'){
     html += renderAssignmentsList();
+  } else {
+    html += renderResultsTab();
   }
   return html;
 }
@@ -1147,6 +1191,104 @@ async function deleteAssignment(id){
   await sDel('assignment:' + id, true);
   state.assignments = await loadAssignments();
   render();
+}
+
+/* ---------- results ---------- */
+async function refreshResults(){
+  state.results = await loadResults();
+  render();
+}
+
+function toggleRoster(topicId){
+  state.expandedRosters[topicId] = !state.expandedRosters[topicId];
+  render();
+}
+
+function missBadgeClass(pct){
+  if(pct >= 50) return 'high';
+  if(pct >= 25) return 'med';
+  return 'low';
+}
+
+function renderResultsTab(){
+  let html = '<div class="section-head"><span class="section-title">Results</span>' +
+    '<button class="btn btn-outline btn-sm" onclick="refreshResults()">Refresh</button></div>';
+
+  if(state.results.length === 0){
+    html += '<div class="empty-state">No quiz attempts yet. Results will appear here once learners complete a checkpoint.</div>';
+    return html;
+  }
+
+  const totalAttempts = state.results.length;
+  const learnerSet = {};
+  state.results.forEach(function(r){ learnerSet[r.learnerName] = true; });
+  const learnerCount = Object.keys(learnerSet).length;
+  const avgPct = Math.round(state.results.reduce(function(sum,r){ return sum + (r.score/r.total*100); }, 0) / totalAttempts);
+
+  html += '<div class="admin-note">' + totalAttempts + ' attempt' + (totalAttempts===1?'':'s') + ' from ' + learnerCount + ' learner' + (learnerCount===1?'':'s') + ' · ' + avgPct + '% average score across all checkpoints.</div>';
+
+  const byTopic = {};
+  const order = [];
+  state.results.forEach(function(r){
+    if(!byTopic[r.topicId]){ byTopic[r.topicId] = { topicName: r.topicName, records: [] }; order.push(r.topicId); }
+    byTopic[r.topicId].records.push(r);
+  });
+
+  order.forEach(function(topicId){
+    const group = byTopic[topicId];
+    const records = group.records;
+    const n = records.length;
+    const avg = Math.round(records.reduce(function(sum,r){ return sum + (r.score/r.total*100); }, 0) / n);
+
+    const qStats = {};
+    const qOrder = [];
+    records.forEach(function(r){
+      (r.answers || []).forEach(function(a){
+        if(!qStats[a.questionText]){ qStats[a.questionText] = { wrong:0, total:0 }; qOrder.push(a.questionText); }
+        qStats[a.questionText].total++;
+        if(!a.correct) qStats[a.questionText].wrong++;
+      });
+    });
+    const qList = qOrder.map(function(q){
+      const s = qStats[q];
+      return { text:q, wrongPct: Math.round(s.wrong/s.total*100), wrong:s.wrong, total:s.total };
+    }).filter(function(q){ return q.wrong > 0; }).sort(function(a,b){ return b.wrongPct - a.wrongPct; }).slice(0,3);
+
+    let missHtml = '';
+    if(qList.length){
+      missHtml = '<div class="miss-list"><div class="miss-title">Most missed questions</div>' +
+        qList.map(function(q){
+          return '<div class="miss-row"><div class="mq">' + escapeHtml(q.text) + '</div>' +
+            '<div class="miss-badge ' + missBadgeClass(q.wrongPct) + '">' + q.wrongPct + '% missed (' + q.wrong + '/' + q.total + ')</div></div>';
+        }).join('') +
+      '</div>';
+    }
+
+    const expanded = !!state.expandedRosters[topicId];
+    let rosterHtml = '';
+    if(expanded){
+      const sorted = records.slice().sort(function(a,b){ return new Date(b.completedAt) - new Date(a.completedAt); });
+      rosterHtml = '<table class="roster-table"><thead><tr><th>Learner</th><th>Score</th><th>Result</th><th>Completed</th></tr></thead><tbody>' +
+        sorted.map(function(r){
+          const pct = Math.round(r.score/r.total*100);
+          return '<tr><td>' + escapeHtml(r.learnerName) + '</td><td>' + r.score + '/' + r.total + '</td><td>' + pct + '%' + (r.timedOut ? ' · timed out' : '') + '</td><td>' + fmtDateTime(r.completedAt) + '</td></tr>';
+        }).join('') +
+      '</tbody></table>';
+    }
+
+    html += '' +
+    '<div class="result-card">' +
+      '<div class="result-head">' +
+        '<div class="rh-name">' + escapeHtml(group.topicName) + '</div>' +
+        '<div class="rh-stats">' + n + ' attempt' + (n===1?'':'s') + ' · ' + avg + '% average</div>' +
+      '</div>' +
+      missHtml +
+      '<button class="toggle-link" onclick="toggleRoster(\'' + topicId + '\')">' + (expanded ? 'Hide' : 'Show') + ' individual results</button>' +
+      rosterHtml +
+    '</div>';
+  });
+
+  return html;
 }
 
 /* ---------- init ---------- */
